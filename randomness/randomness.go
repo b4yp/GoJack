@@ -20,3 +20,14 @@ func GetRandom(rollamt int) int {
 
 	return randnum // Here's your random number. Enjoy that!
 }
+
+// GetRandomZ - Returns a random number from 0 to rollamt.
+func GetRandomZ(rollamt int) int {
+	// General purpose, reusable, integer random number generator.
+	// rand.Intn(int) returns a value between 0 and n, so add 1 to return.
+	var randnum int
+	rand.Seed(time.Now().UnixNano()) // Use Unix-formatted time for random seed.
+
+	randnum = rand.Intn(rollamt) // Get random number (integer).
+	return randnum               // Here's your random number. Enjoy that!
+}
