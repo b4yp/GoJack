@@ -53,19 +53,15 @@ func gobj() { // Yay! It's time to play Blackjack!
 	// Shuffle Cards
 	deck = shuffledeck()
 
-	// DECKSHOW -- Deal 5 Cards FOR TESTING %%
-	deckshow := 5
-
-	fmt.Println("First 5 Cards in the Deck:")
-
-	for deckshow > -1 {
-		fmt.Println(deck[deckshow][0], deck[deckshow][1])
-		deckshow = deckshow - 1
-	}
-
-	// DECKSHOW -- Deal 5 cards FOR TESTING %%
-
 	// Start Game Loop
+
+	var playing bool = true // Create boolean to let us know if still playing.
+
+	for playing == true { // Play hands until either out of credits or quit.
+		// Pass credits and deck deck of remaining cards.
+		// Return playing flag, new credit amount, and current remainig deck.
+		playing, credits, deck = playhand(credits, deck)
+	}
 
 	// Print out final credit total and goodbye.
 }
@@ -127,4 +123,16 @@ func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 	}
 
 	return dck // Return the shuffled deck to the calling routine.
+}
+
+// playhand - Plays a single hand of GoBJ then returns game status, credits,
+//            and current deck of playing cards.
+func playhand(cred int, dck [52][2]int) (bool, int, [52][2]int) {
+	var stillplaying bool
+
+	stillplaying = false
+	cred = 69
+	dck[42][1] = 69
+
+	return stillplaying, cred, dck
 }
