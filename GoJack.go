@@ -40,6 +40,7 @@ func gobj() { // Yay! It's time to play Blackjack!
 	// Print out intro and initialize money to "100" credits.
 
 	var credits int = 100
+	var oncard int = 51
 
 	// Initialize Card Arrays
 	/* As of right now, only one deck. May add another dimension to store
@@ -56,7 +57,14 @@ func gobj() { // Yay! It's time to play Blackjack!
 	for playing == true { // Play hands until either out of credits or quit.
 		// Pass credits and deck deck of remaining cards.
 		// Return playing flag, new credit amount, and current remainig deck.
-		playing, credits, deck = playhand(credits, deck)
+		playing, credits, oncard, deck = playhand(credits, oncard, deck)
+
+		// If there are less than 4 cards (Standard to start game), reshuffle.
+		if oncard < 4 {
+			deck = shuffledeck()
+			oncard = 51
+		}
+
 	}
 
 	// Print out final credit total and goodbye.
@@ -123,7 +131,7 @@ func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 
 // playhand - Plays a single hand of GoBJ then returns game status, credits,
 //            and current deck of playing cards.
-func playhand(cred int, dck [52][2]int) (bool, int, [52][2]int) {
+func playhand(cred int, card int, dck [52][2]int) (bool, int, int, [52][2]int) {
 	var stillplaying bool // Is the player still playing?
 	var validchoice bool  // Is the choice returned valid?
 	var bet int           // This is the amount of the bet.
@@ -136,7 +144,9 @@ func playhand(cred int, dck [52][2]int) (bool, int, [52][2]int) {
 		if bet >= 0 && bet <= cred { // OK, we're going to play BJ now!
 			validchoice = true
 			fmt.Println("Amount wagered:", bet)
-			//	cred, dck = playblackjack(cred, dck)
+			cred, card, dck = playblackjack(cred, bet, card, dck)
+			fmt.Println(cred, dck[42][1])
+			kutil.Pause(5)
 		}
 
 		/* Only a bet that is "0" to quit or an amount that's within the
@@ -144,8 +154,6 @@ func playhand(cred int, dck [52][2]int) (bool, int, [52][2]int) {
 		   back to try again! */
 
 	}
-
-	cred = cred - bet // %%% For testing purposes.
 
 	switch { // OK, let's see what we do after the game is played.
 	case bet == 0: // We bet "0" on the wager screen.
@@ -164,7 +172,7 @@ func playhand(cred int, dck [52][2]int) (bool, int, [52][2]int) {
 	}
 
 	fmt.Println(stillplaying)
-	return stillplaying, cred, dck
+	return stillplaying, cred, card, dck
 	// Return the flag that lets us know if we are still playing,
 	// our leftover creds, and what's left of the deck of cards.
 }
@@ -191,4 +199,13 @@ func wager(creds int) int { // This routine grabs our bet! Or quits.
 	kutil.Pause(2) // Pause for a couple of seconds to allow user to read the outcome.
 
 	return betamt // Return the amount that was bet.
+}
+
+func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) (int, int, [52][2]int) {
+
+	curcredits = curcredits - curbet
+	curdeck[42][1] = 69
+
+	return curcredits, curcard, curdeck
+
 }
