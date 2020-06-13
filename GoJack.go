@@ -91,16 +91,16 @@ func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 		switch {
 		case intdeck < 13: // Suit 1 (Clubs)
 			unshuf[intdeck][0] = intdeck + 1
-			unshuf[intdeck][1] = 1
+			unshuf[intdeck][1] = 0
 		case intdeck > 12 && intdeck < 26: // Suit 2 (Diamonds)
 			unshuf[intdeck][0] = intdeck - 12
-			unshuf[intdeck][1] = 2
+			unshuf[intdeck][1] = 1
 		case intdeck > 25 && intdeck < 39: // Suit 3 (Hearts)
 			unshuf[intdeck][0] = intdeck - 25
-			unshuf[intdeck][1] = 3
+			unshuf[intdeck][1] = 2
 		case intdeck > 38: // Suit 4 (Spades)
 			unshuf[intdeck][0] = intdeck - 38
-			unshuf[intdeck][1] = 4
+			unshuf[intdeck][1] = 3
 		}
 
 		intdeck = intdeck + 1
@@ -141,11 +141,14 @@ func playhand(cred int, card int, dck [52][2]int) (bool, int, int, [52][2]int) {
 		titleprint()      // Clear the screen and print the title.
 		bet = wager(cred) // Wager prompt. Returns "0" for bet if quitting.
 
-		if bet >= 0 && bet <= cred { // OK, we're going to play BJ now!
+		if bet >= 0 && bet <= cred {
+			// OK, we're going to play BJ now!
+			// Unless bet = 0, then we're quitting.
 			validchoice = true
-			fmt.Println("Amount wagered:", bet)
-			cred, card, dck = playblackjack(cred, bet, card, dck)
-			fmt.Println(cred, dck[42][1])
+			if bet > 0 {
+				fmt.Println("Amount wagered:", bet)
+				cred, card, dck = playblackjack(cred, bet, card, dck)
+			}
 			kutil.Pause(5)
 		}
 
@@ -171,7 +174,6 @@ func playhand(cred int, card int, dck [52][2]int) (bool, int, int, [52][2]int) {
 		kutil.Pause(5)
 	}
 
-	fmt.Println(stillplaying)
 	return stillplaying, cred, card, dck
 	// Return the flag that lets us know if we are still playing,
 	// our leftover creds, and what's left of the deck of cards.
@@ -203,9 +205,79 @@ func wager(creds int) int { // This routine grabs our bet! Or quits.
 
 func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) (int, int, [52][2]int) {
 
+	var c int // Array Counter
+	var cardsout bool = true
+	// Define Dealer and Player Hands -- Using 12 cards as maximum. Reason?
+	// 1x4 + 2x4 + 3x3 = 21 , Add 1 additional card and player goes over 21.
+	// Player/Dealer would need to be incredibly lucky to get that hand, but
+	// I want to code for it because you never know.
+	var dealerhand [12][2]int // Dealer's Hand
+	var playerhand [12][2]int // Player's Hand
+	// Define cards in hand for loop so we only loop as many times as there are cards.
+	// Initialized to "2" each because initial deal is only 2 cards each,
+	var dealercards int = 2 // Number of cards that the dealer has.
+	var playercards int = 2 // Number of cards that the player has.
+	// Define whether or not it's the dealer's turn to play.
+	// If "false" then the first card that the dealer plays is covered.
+	var dealerturn bool = false
+
+	// Set card numbers and add current cards to arrays.
+
+	c = 0
+	for c < 4 {
+		fmt.Println(curcard)
+		switch {
+		case c == 0 || c == 1:
+			dealerhand[c][0] = curdeck[curcard-c][0]
+			dealerhand[c][1] = curdeck[curcard-c][1]
+		case c == 2 || c == 3:
+			playerhand[c-2][0] = curdeck[curcard-c][0]
+			playerhand[c-2][1] = curdeck[curcard-c][1]
+		}
+		c = c + 1
+	}
+
+	curcard = curcard - 4
+
+	for cardsout {
+		showhand(dealerhand, playerhand, dealercards, playercards, dealerturn)
+		cardsout = false
+	}
+
 	curcredits = curcredits - curbet
-	curdeck[42][1] = 69
 
 	return curcredits, curcard, curdeck
 
+}
+
+func showhand(dlrhand [12][2]int, plrhand [12][2]int, dlrcards int, plrcards int, dlrturn bool) {
+	var d int // Counter for Card Deal
+
+	suit := [4]string{"C", "D", "H", "S"}
+
+	// Clear Screen and Print Title
+	kutil.ClearScreen()
+	titleprint()
+
+	// Print Dealer Hand
+	d = 0
+	fmt.Println("Dealer's Hand:")
+	for d < dlrcards {
+		if dlrturn == false && d == 0 {
+			fmt.Print("[X X]")
+		} else {
+			fmt.Print("[", dlrhand[d][0], " ", suit[dlrhand[d][1]], "]")
+		}
+		d = d + 1
+	}
+
+	fmt.Println()
+	fmt.Println()
+	// Print Player Hand
+	d = 0
+	fmt.Println("Player's Hand:")
+	for d < dlrcards {
+		fmt.Print("[", plrhand[d][0], " ", suit[plrhand[d][1]], "]")
+		d = d + 1
+	}
 }
