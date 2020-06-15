@@ -67,6 +67,7 @@ func titleprint() { // Print the title of the game.
 
 	// Print out the game title. We'll probably use this a lot.
 	fmt.Println("GoJack v1.0 -- Blackjack for the Terminal")
+	fmt.Println("Branch - WIP")
 	fmt.Println()
 }
 
