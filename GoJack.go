@@ -18,8 +18,17 @@ import (
 	"randomness"
 )
 
+// GLOBAL VARIABLES
+
 // Credits - Amount of Credits that a player has. Initialized to 100 credits at start.
 var Credits int = 100
+
+// OnCard - Which is the next card that we are drawing from the deck?
+// -- Initialized to 51 (arrays start at 0, 52 cards in standard deck)
+var OnCard int = 51
+
+// Deck -- Our shuffled deck of cards.
+var Deck [52][2]int
 
 func main() {
 
@@ -31,30 +40,21 @@ func main() {
 
 func gobj() { // OK! Let's start up the BlackJack Routine!
 
-	// Define variable to show which card we're on and set it to 51.
-	var oncard int = 51
-
-	// Initialize Card Arrays
-	/* As of right now, only one deck. May add another dimension to store
-	   multiple decks in a shoe. */
-	var deck [52][2]int // Multi-Dimension Array to Store Cards/Suits
-
 	// Shuffle Cards
-	deck = shuffledeck()
+	shuffledeck()
 
 	// Start Game Loop
 
 	var playing bool = true // Create boolean to let us know if still playing.
 
 	for playing == true { // Play hands until either out of credits or quit.
-		// Pass credits and deck deck of remaining cards.
-		// Return playing flag, new credit amount, and current remainig deck.
-		playing, oncard, deck = playhand(oncard, deck)
+		// Return flag to let loop know that we're still playing.
+		playing = playhand()
 
 		// If there are less than 4 cards (Standard to start game), reshuffle.
-		if oncard < 4 {
-			deck = shuffledeck()
-			oncard = 51
+		if OnCard < 4 {
+			shuffledeck()
+			OnCard = 51
 		}
 
 	}
@@ -82,8 +82,7 @@ func titleprint() { // Print the title of the game.
    since there will likely be times where there are 5 cards remaining in the
    deck and we need more than that. */
 
-func shuffledeck() [52][2]int { // Shuffle a deck of cards.
-	var dck [52][2]int    // Shuffled Deck
+func shuffledeck() { // Shuffle a deck of cards.
 	var unshuf [52][2]int // Unshuffled Deck (Cards in numerical/suit order)
 	var intdeck int = 0   // Counter for initializing the deck.
 	var shufdeck int = 51 // Counter for shuffling the deck.
@@ -113,8 +112,8 @@ func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 	for shufdeck > -1 { // Here is where the cards are shuffled.
 		pickcard = randomness.GetRandomZ(shufdeck + 1) // Grab random card.
 
-		dck[shufdeck][0] = unshuf[pickcard][0] // Add card to shuffled deck.
-		dck[shufdeck][1] = unshuf[pickcard][1] // Add suit to shuffled card.
+		Deck[shufdeck][0] = unshuf[pickcard][0] // Add card to shuffled deck.
+		Deck[shufdeck][1] = unshuf[pickcard][1] // Add suit to shuffled card.
 
 		reindex = pickcard // Starting card for re-index.
 
@@ -130,12 +129,11 @@ func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 		shufdeck = shufdeck - 1
 	}
 
-	return dck // Return the shuffled deck to the calling routine.
 }
 
 // playhand - Plays a single hand of GoBJ then returns game status, credits,
 //            and current deck of playing cards.
-func playhand(card int, dck [52][2]int) (bool, int, [52][2]int) {
+func playhand() bool {
 	var stillplaying bool // Is the player still playing?
 	var validchoice bool  // Is the choice returned valid?
 	var bet int           // This is the amount of the bet.
@@ -151,7 +149,7 @@ func playhand(card int, dck [52][2]int) (bool, int, [52][2]int) {
 			validchoice = true
 			if bet > 0 {
 				fmt.Println("Amount wagered:", bet)
-				card, dck = playblackjack(bet, card, dck)
+				playblackjack(bet)
 			}
 			kutil.Pause(2)
 		}
@@ -178,7 +176,7 @@ func playhand(card int, dck [52][2]int) (bool, int, [52][2]int) {
 		kutil.Pause(5)
 	}
 
-	return stillplaying, card, dck
+	return stillplaying
 	// Return the flag that lets us know if we are still playing,
 	// our leftover creds, and what's left of the deck of cards.
 }
@@ -209,7 +207,7 @@ func wager() int { // This routine grabs our bet! Or quits.
 }
 
 // Yay!!! We get to play BlackJack! At last!
-func playblackjack(curbet int, curcard int, curdeck [52][2]int) (int, [52][2]int) {
+func playblackjack(curbet int) {
 
 	var c int                // Array Counter
 	var cardsout bool = true // Are there cards that still need to be played?
@@ -242,16 +240,16 @@ func playblackjack(curbet int, curcard int, curdeck [52][2]int) (int, [52][2]int
 	for c < 4 {
 		switch {
 		case c == 0 || c == 1:
-			dealerhand[c][0] = curdeck[curcard-c][0]
-			dealerhand[c][1] = curdeck[curcard-c][1]
+			dealerhand[c][0] = Deck[OnCard-c][0]
+			dealerhand[c][1] = Deck[OnCard-c][1]
 		case c == 2 || c == 3:
-			playerhand[c-2][0] = curdeck[curcard-c][0]
-			playerhand[c-2][1] = curdeck[curcard-c][1]
+			playerhand[c-2][0] = Deck[OnCard-c][0]
+			playerhand[c-2][1] = Deck[OnCard-c][1]
 		}
 		c = c + 1
 	}
 
-	curcard = curcard - 4
+	OnCard = OnCard - 4
 
 	// Start by doing a check of the initial totals to see if the player
 	// got a blackjack and populate the totals for the screen.
@@ -285,9 +283,9 @@ func playblackjack(curbet int, curcard int, curdeck [52][2]int) (int, [52][2]int
 			// is zero, that means that the player has drawn a card. Add the card
 			// to the player's hand.
 			if playerhand[playercards-1][0] == 0 {
-				playerhand[playercards-1][0] = curdeck[curcard][0]
-				playerhand[playercards-1][1] = curdeck[curcard][1]
-				curcard = curcard - 1
+				playerhand[playercards-1][0] = Deck[OnCard][0]
+				playerhand[playercards-1][1] = Deck[OnCard][1]
+				OnCard = OnCard - 1
 			} else {
 				// If the array returns non-zero, that means that the player did not
 				// draw a card and their turn is over.
@@ -299,9 +297,9 @@ func playblackjack(curbet int, curcard int, curdeck [52][2]int) (int, [52][2]int
 			// is zero, that means that the dealer has drawn a card. Add the card
 			// to the dealer's hand.
 			if dealerhand[dealercards-1][0] == 0 {
-				dealerhand[dealercards-1][0] = curdeck[curcard][0]
-				dealerhand[dealercards-1][1] = curdeck[curcard][1]
-				curcard = curcard - 1
+				dealerhand[dealercards-1][0] = Deck[OnCard][0]
+				dealerhand[dealercards-1][1] = Deck[OnCard][1]
+				OnCard = OnCard - 1
 			} else {
 				// If the array returns non-zero, that means that the dealer did not
 				// draw a card and their turn is over.
@@ -371,8 +369,6 @@ func playblackjack(curbet int, curcard int, curdeck [52][2]int) (int, [52][2]int
 		}
 
 	}
-
-	return curcard, curdeck
 
 }
 
