@@ -4,7 +4,11 @@
 //			Thinking about it, this may be rolled into a
 //          GoCasino project eventually. TBD.
 //
-// KEC - 06/2020
+// KEC (@b4yp) - 2020
+// ----------
+// Release Log:
+//
+// v1.0 - 2020/06/15 - Initial release!
 
 package main
 
@@ -22,20 +26,7 @@ func main() {
 
 }
 
-func titleprint() {
-
-	// Clear the screen.
-
-	kutil.ClearScreen()
-
-	// Print out the game title. We'll probably use this a lot.
-
-	fmt.Println("GoJack -- Blackjack for the Terminal")
-	fmt.Println("KEC - 2020")
-	fmt.Println()
-}
-
-func gobj() { // Yay! It's time to play Blackjack!
+func gobj() { // OK! Let's start up the BlackJack Routine!
 
 	// Print out intro and initialize money to "100" credits.
 
@@ -67,7 +58,16 @@ func gobj() { // Yay! It's time to play Blackjack!
 
 	}
 
-	// Print out final credit total and goodbye.
+}
+
+func titleprint() { // Print the title of the game.
+
+	// Clear the screen.
+	kutil.ClearScreen()
+
+	// Print out the game title. We'll probably use this a lot.
+	fmt.Println("GoJack v1.0 -- Blackjack for the Terminal")
+	fmt.Println()
 }
 
 /* The function below shuffles a deck of cards. Right now, it will only
@@ -75,8 +75,10 @@ func gobj() { // Yay! It's time to play Blackjack!
    that have already been dealt. This may cause inaccuracies on a re-shuffle
    because there are cards already on the table and it will, in essence,
    re-add those cards to the shuffled deck as well as have those same cards
-   on the table. For now, to get around this, we will re-shuffle between every
-   hand.  */
+   on the table. For now, to get around this, we will re-shuffle when there
+   are 4 or less cards left between hands. This is only a temporary solution,
+   since there will likely be times where there are 5 cards remaining in the
+   deck and we need more than that. */
 
 func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 	var dck [52][2]int    // Shuffled Deck
@@ -149,7 +151,7 @@ func playhand(cred int, card int, dck [52][2]int) (bool, int, int, [52][2]int) {
 				fmt.Println("Amount wagered:", bet)
 				cred, card, dck = playblackjack(cred, bet, card, dck)
 			}
-			kutil.Pause(5)
+			kutil.Pause(2)
 		}
 
 		/* Only a bet that is "0" to quit or an amount that's within the
@@ -189,6 +191,7 @@ func wager(creds int) int { // This routine grabs our bet! Or quits.
 
 	switch { // OK.. let's see what we bet.
 	case betamt == 0: // Bet is 0. Quit the game.
+		fmt.Println()
 		fmt.Println("Thanks for playing!")
 	case betamt < 0: // Bet is negative. Invalid.
 		fmt.Println("Sorry, you can't wager negative amounts of credits.")
@@ -273,7 +276,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 			fmt.Println("BLACKJACK! W00T!")
 			cardsout = false
 			curcredits = curcredits + (curbet * 2)
-			kutil.Pause(5)
+			kutil.Pause(2)
 		case dealerturn == false: // It's the player's turn.
 			playercards = playerselect(playercards)
 			// Check the array. If the card in the highest place in the array
@@ -322,7 +325,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 				fmt.Println("PLAYER HAS BUSTED!")
 				curcredits = curcredits - curbet
 				cardsout = false
-				kutil.Pause(5)
+				kutil.Pause(2)
 			}
 
 			// If the dealer busts, let the player know, add the credits that they bet
@@ -331,7 +334,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 				fmt.Println("DEALER HAS BUSTED!")
 				curcredits = curcredits + curbet
 				cardsout = false
-				kutil.Pause(5)
+				kutil.Pause(2)
 			}
 
 		}
@@ -350,16 +353,16 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 				// Player has more points than the dealer. They win!
 				fmt.Println("Congratulations, you won!")
 				curcredits = curcredits + curbet
-				kutil.Pause(5)
+				kutil.Pause(2)
 			case dealertotal > playertotal:
 				// Dealer has more points than the player. Dealer wins!
 				fmt.Println("Sorry, you lost!")
 				curcredits = curcredits - curbet
-				kutil.Pause(5)
+				kutil.Pause(2)
 			case dealertotal == playertotal:
 				// Dealer and player have the same. No win, no loss.
 				fmt.Println("Push. No win, no loss.")
-				kutil.Pause(5)
+				kutil.Pause(2)
 			}
 
 			cardsout = false // Set flag to exit loop since both players are done.
