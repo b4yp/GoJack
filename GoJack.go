@@ -203,10 +203,11 @@ func wager(creds int) int { // This routine grabs our bet! Or quits.
 	return betamt // Return the amount that was bet.
 }
 
+// Yay!!! We get to play BlackJack! At last!
 func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) (int, int, [52][2]int) {
 
-	var c int // Array Counter
-	var cardsout bool = true
+	var c int                // Array Counter
+	var cardsout bool = true // Are there cards that still need to be played?
 	// Define Dealer and Player Hands -- Using 12 cards as maximum. Reason?
 	// 1x4 + 2x4 + 3x3 = 21 , Add 1 additional card and player goes over 21.
 	// Player/Dealer would need to be incredibly lucky to get that hand, but
@@ -217,15 +218,23 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 	// Initialized to "2" each because initial deal is only 2 cards each,
 	var dealercards int = 2 // Number of cards that the dealer has.
 	var playercards int = 2 // Number of cards that the player has.
+	// Total amount of the player's and dealer's hands.
+	var dealertotal int
+	var playertotal int
+	// Did the player or dealer bust?
+	var playerbust bool = false
+	var dealerbust bool = false
 	// Define whether or not it's the dealer's turn to play.
 	// If "false" then the first card that the dealer plays is covered.
 	var dealerturn bool = false
+	// Define if the dealer is done with their turn.
+	var dealerdone bool = false
+	// Did the player get blackjack on the initial deal?
+	var playerbj bool = false
 
 	// Set card numbers and add current cards to arrays.
-
 	c = 0
 	for c < 4 {
-		fmt.Println(curcard)
 		switch {
 		case c == 0 || c == 1:
 			dealerhand[c][0] = curdeck[curcard-c][0]
@@ -239,21 +248,137 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 
 	curcard = curcard - 4
 
-	for cardsout {
-		showhand(dealerhand, playerhand, dealercards, playercards, dealerturn)
-		cardsout = false
+	// Start by doing a check of the initial totals to see if the player
+	// got a blackjack and populate the totals for the screen.
+	playertotal, playerbust = cardcount(playerhand, playercards)
+	dealertotal, dealerbust = cardcount(dealerhand, dealercards)
+
+	// If player gets a Blackjack, set a flag to let the cardsout loop know.
+	if playertotal == 21 {
+		playerbj = true
 	}
 
-	curcredits = curcredits - curbet
+	// Now that all of that setup is done, let's actually play the game!
+	for cardsout {
+		// Show the player and dealer's hand on the screen.
+		showhand(dealerhand, playerhand, dealertotal, playertotal,
+			dealercards, playercards, dealerturn)
+		fmt.Println()
+
+		// Determine who's turn it is and call the appropriate routine to process same.
+		switch {
+		case playerbj:
+			// If player gets a BlackJack, let them know, pay them, and exit the loop.
+			// No game to play.
+			fmt.Println("BLACKJACK! W00T!")
+			cardsout = false
+			curcredits = curcredits + (curbet * 2)
+			kutil.Pause(5)
+		case dealerturn == false: // It's the player's turn.
+			playercards = playerselect(playercards)
+			// Check the array. If the card in the highest place in the array
+			// is zero, that means that the player has drawn a card. Add the card
+			// to the player's hand.
+			if playerhand[playercards-1][0] == 0 {
+				playerhand[playercards-1][0] = curdeck[curcard][0]
+				playerhand[playercards-1][1] = curdeck[curcard][1]
+				curcard = curcard - 1
+			} else {
+				// If the array returns non-zero, that means that the player did not
+				// draw a card and their turn is over.
+				dealerturn = true
+			}
+		case dealerturn == true: // Now, it's the dealer's turn.
+			dealercards = dealerselect(dealercards, dealertotal)
+			// Check the array. If the card in the highest place in the array
+			// is zero, that means that the dealer has drawn a card. Add the card
+			// to the dealer's hand.
+			if dealerhand[dealercards-1][0] == 0 {
+				dealerhand[dealercards-1][0] = curdeck[curcard][0]
+				dealerhand[dealercards-1][1] = curdeck[curcard][1]
+				curcard = curcard - 1
+			} else {
+				// If the array returns non-zero, that means that the dealer did not
+				// draw a card and their turn is over.
+				dealerdone = true
+			}
+		}
+
+		// Total up the player and dealer hands. Determine if either have busted.
+		playertotal, playerbust = cardcount(playerhand, playercards)
+		dealertotal, dealerbust = cardcount(dealerhand, dealercards)
+
+		// If either the player or dealer bust, clear the screen, show the updated
+		// hands and totals, then process outcome.
+		if playerbust || dealerbust {
+			// Show the player and dealer's hand on the screen.
+			showhand(dealerhand, playerhand, dealertotal, playertotal,
+				dealercards, playercards, dealerturn)
+			fmt.Println()
+
+			// If the player busts, let them know, subtract the credits that they bet
+			// and set the flag to exit the game loop.
+			if playerbust {
+				fmt.Println("PLAYER HAS BUSTED!")
+				curcredits = curcredits - curbet
+				cardsout = false
+				kutil.Pause(5)
+			}
+
+			// If the dealer busts, let the player know, add the credits that they bet
+			// and set the flag to exit the game loop.
+			if dealerbust {
+				fmt.Println("DEALER HAS BUSTED!")
+				curcredits = curcredits + curbet
+				cardsout = false
+				kutil.Pause(5)
+			}
+
+		}
+
+		// If the dealer completes their turn successfully without busting,
+		// then it's time to determine who won the game based on score.
+		if dealerdone {
+
+			// Show the player and dealer's hand on the screen.
+			showhand(dealerhand, playerhand, dealertotal, playertotal,
+				dealercards, playercards, dealerturn)
+			fmt.Println()
+
+			switch {
+			case playertotal > dealertotal:
+				// Player has more points than the dealer. They win!
+				fmt.Println("Congratulations, you won!")
+				curcredits = curcredits + curbet
+				kutil.Pause(5)
+			case dealertotal > playertotal:
+				// Dealer has more points than the player. Dealer wins!
+				fmt.Println("Sorry, you lost!")
+				curcredits = curcredits - curbet
+				kutil.Pause(5)
+			case dealertotal == playertotal:
+				// Dealer and player have the same. No win, no loss.
+				fmt.Println("Push. No win, no loss.")
+				kutil.Pause(5)
+			}
+
+			cardsout = false // Set flag to exit loop since both players are done.
+		}
+
+	}
 
 	return curcredits, curcard, curdeck
 
 }
 
-func showhand(dlrhand [12][2]int, plrhand [12][2]int, dlrcards int, plrcards int, dlrturn bool) {
+// This function exists to print out the hands of the dealer and the player.
+// Modified: Now also prints out the totals as well.
+func showhand(dlrhand [12][2]int, plrhand [12][2]int, dtotal int, ptotal int,
+	dlrcards int, plrcards int, dlrturn bool) {
 	var d int // Counter for Card Deal
 
-	suit := [4]string{"C", "D", "H", "S"}
+	realcard := [4]string{"J", "Q", "K", "A"} // Array of Face Cards
+	suit := [4]string{"♣", "♦", "♥", "♠"}     // Suits Expressed as Pictures
 
 	// Clear Screen and Print Title
 	kutil.ClearScreen()
@@ -264,20 +389,132 @@ func showhand(dlrhand [12][2]int, plrhand [12][2]int, dlrcards int, plrcards int
 	fmt.Println("Dealer's Hand:")
 	for d < dlrcards {
 		if dlrturn == false && d == 0 {
+			// If it isn't the dealer's turn yet, hide the first card.
 			fmt.Print("[X X]")
 		} else {
-			fmt.Print("[", dlrhand[d][0], " ", suit[dlrhand[d][1]], "]")
+			// If it is the dealer's turn, show all of the cards.
+			switch {
+			case dlrhand[d][0] > 10: // If the card is > 10, it's a face card. Account for this.
+				fmt.Print("[", realcard[(dlrhand[d][0]-11)], " ", suit[dlrhand[d][1]], "]")
+			case dlrhand[d][0] == 1: // If the card is a "1", it's an Ace. Account for this.
+				fmt.Print("[", realcard[3], " ", suit[dlrhand[d][1]], "]")
+			default: // Otherwise it's a regular old number card. Just print it out as-is.
+				fmt.Print("[", dlrhand[d][0], " ", suit[dlrhand[d][1]], "]")
+			}
 		}
 		d = d + 1
 	}
 
 	fmt.Println()
+
+	if dlrturn == false {
+		// If it's the player's turn, we don't know the dealer's total because the
+		// first card is hidden.. so display question marks.
+		fmt.Println("Dealer Total: ??")
+	} else {
+		// If it it's the dealer's turn, we want to show the total for the dealer.
+		fmt.Println("Dealer Total:", dtotal)
+	}
 	fmt.Println()
 	// Print Player Hand
 	d = 0
 	fmt.Println("Player's Hand:")
-	for d < dlrcards {
-		fmt.Print("[", plrhand[d][0], " ", suit[plrhand[d][1]], "]")
+	for d < plrcards {
+		switch {
+		case plrhand[d][0] > 10: // If the card is > 10, it's a face card. Account for this.
+			fmt.Print("[", realcard[(plrhand[d][0]-11)], " ", suit[plrhand[d][1]], "]")
+		case plrhand[d][0] == 1: // If the card is a "1", it's an Ace. Account for this.
+			fmt.Print("[", realcard[3], " ", suit[plrhand[d][1]], "]")
+		default: // Otherwise, it's a regular old number card. Just print it out as-is.
+			fmt.Print("[", plrhand[d][0], " ", suit[plrhand[d][1]], "]")
+		}
 		d = d + 1
 	}
+	// Print out the player's total. We always do this.
+	fmt.Println()
+	fmt.Println("Player Total:", ptotal)
+}
+
+// This function totals the score for all of the cards and determines if someone busts.
+func cardcount(counthand [12][2]int, countcards int) (int, bool) {
+	var d int = 0          // Array counter/variable.
+	var acecount int = 0   // Number of aces that we encounter that have been drawn.
+	var totalcount int = 0 // Total value of the cards in the hand.
+	var bust bool = false  // Did the we bust?
+
+	for d < countcards {
+		switch {
+		case counthand[d][0] == 1: // This card is an Ace. Register it as so and add 11.
+			totalcount = totalcount + 11
+			acecount = acecount + 1
+		case counthand[d][0] > 9: // This card is a face card (or a 10). Add 10 to the total.
+			totalcount = totalcount + 10
+		case counthand[d][0] < 10: // This card is less than 10. Add the value as-is.
+			totalcount = totalcount + counthand[d][0]
+		}
+
+		// If we reach a total that's greater than 21, check to see if we have any aces.
+		// If so, reduce the count by 10 so the ace counts as "1" instead of 11.
+		// Also, decrement the number of aces that we have to use for this.
+		if totalcount > 21 && acecount > 0 {
+			totalcount = totalcount - 10
+			acecount = acecount - 1
+		}
+
+		if totalcount > 21 { // Total > 21? Sorry. Ya busted.
+			bust = true
+		}
+
+		d = d + 1
+	}
+	return totalcount, bust
+}
+
+// This function is to allow the player to select their
+func playerselect(incard int) int {
+	var newcard int   // Number of cards in the hand.
+	var selection int // Menu selection.
+
+	// Print out the menu and get the selection from it.
+	fmt.Println("1. Hit")
+	fmt.Println("2. Stay")
+	fmt.Print(">> ")
+	fmt.Scan(&selection)
+
+	// Process our selection.
+	switch {
+	case selection == 1: // Hit. Add a card to the hand.
+		newcard = incard + 1
+		fmt.Println("Requesting a card.")
+		kutil.Pause(2)
+	case selection == 2: // Stay. No added card.
+		newcard = incard
+		fmt.Println("No more cards for you!")
+		kutil.Pause(2)
+	default:
+		newcard = incard // Invalid. No added card.
+		fmt.Println("Invalid selection, assuming Stay.")
+		kutil.Pause(5)
+	}
+
+	return newcard
+}
+
+// This function is the "AI" for the dealer. It's a pretty dumb AI right now.
+// Basically, hit on anything less than 16.
+func dealerselect(indcard int, indtotal int) int {
+	var newdcard int // Number of cards in the hand.
+
+	switch {
+	case indtotal < 16: // Less than 16? Hit. Add a new card.
+		newdcard = indcard + 1
+		fmt.Println("Dealer takes a card.")
+		kutil.Pause(2)
+	case indtotal >= 16: // Greater or equal to 16? Stay. No new card.
+		newdcard = indcard
+		fmt.Println("Dealer stays.")
+		kutil.Pause(2)
+	}
+
+	return newdcard
 }
