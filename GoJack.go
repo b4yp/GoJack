@@ -18,6 +18,9 @@ import (
 	"randomness"
 )
 
+// Credits - Amount of Credits that a player has. Initialized to 100 credits at start.
+var Credits int = 100
+
 func main() {
 
 	// Run Game - Making this modular in case I decide to break this out into
@@ -28,9 +31,7 @@ func main() {
 
 func gobj() { // OK! Let's start up the BlackJack Routine!
 
-	// Print out intro and initialize money to "100" credits.
-
-	var credits int = 100
+	// Define variable to show which card we're on and set it to 51.
 	var oncard int = 51
 
 	// Initialize Card Arrays
@@ -48,7 +49,7 @@ func gobj() { // OK! Let's start up the BlackJack Routine!
 	for playing == true { // Play hands until either out of credits or quit.
 		// Pass credits and deck deck of remaining cards.
 		// Return playing flag, new credit amount, and current remainig deck.
-		playing, credits, oncard, deck = playhand(credits, oncard, deck)
+		playing, oncard, deck = playhand(oncard, deck)
 
 		// If there are less than 4 cards (Standard to start game), reshuffle.
 		if oncard < 4 {
@@ -134,23 +135,23 @@ func shuffledeck() [52][2]int { // Shuffle a deck of cards.
 
 // playhand - Plays a single hand of GoBJ then returns game status, credits,
 //            and current deck of playing cards.
-func playhand(cred int, card int, dck [52][2]int) (bool, int, int, [52][2]int) {
+func playhand(card int, dck [52][2]int) (bool, int, [52][2]int) {
 	var stillplaying bool // Is the player still playing?
 	var validchoice bool  // Is the choice returned valid?
 	var bet int           // This is the amount of the bet.
 
 	validchoice = false
 	for validchoice == false { // Loop until a valid choice is made.
-		titleprint()      // Clear the screen and print the title.
-		bet = wager(cred) // Wager prompt. Returns "0" for bet if quitting.
+		titleprint()  // Clear the screen and print the title.
+		bet = wager() // Wager prompt. Returns "0" for bet if quitting.
 
-		if bet >= 0 && bet <= cred {
+		if bet >= 0 && bet <= Credits {
 			// OK, we're going to play BJ now!
 			// Unless bet = 0, then we're quitting.
 			validchoice = true
 			if bet > 0 {
 				fmt.Println("Amount wagered:", bet)
-				cred, card, dck = playblackjack(cred, bet, card, dck)
+				card, dck = playblackjack(bet, card, dck)
 			}
 			kutil.Pause(2)
 		}
@@ -168,25 +169,25 @@ func playhand(cred int, card int, dck [52][2]int) (bool, int, int, [52][2]int) {
 		// this check first, it'll quit regadless of how
 		// many credits we have.
 		stillplaying = false
-	case cred > 0: // We still have credits left and didn't bet zero.
+	case Credits > 0: // We still have credits left and didn't bet zero.
 		// Keep playing.
 		stillplaying = true
-	case cred <= 0: // We're out of credits! No more game for us!
+	case Credits <= 0: // We're out of credits! No more game for us!
 		stillplaying = false
 		fmt.Println("You've run out of credits! Thanks for playing!")
 		kutil.Pause(5)
 	}
 
-	return stillplaying, cred, card, dck
+	return stillplaying, card, dck
 	// Return the flag that lets us know if we are still playing,
 	// our leftover creds, and what's left of the deck of cards.
 }
 
-func wager(creds int) int { // This routine grabs our bet! Or quits.
+func wager() int { // This routine grabs our bet! Or quits.
 	var betamt int // Bet amount.
 
 	fmt.Println("How much would you like to wager?")
-	fmt.Println("Credits:", creds)
+	fmt.Println("Credits:", Credits)
 	fmt.Printf("Amount (0 to exit) > ")
 	fmt.Scan(&betamt) // Get our bet amount from the terminal.
 
@@ -196,9 +197,9 @@ func wager(creds int) int { // This routine grabs our bet! Or quits.
 		fmt.Println("Thanks for playing!")
 	case betamt < 0: // Bet is negative. Invalid.
 		fmt.Println("Sorry, you can't wager negative amounts of credits.")
-	case betamt > creds: // Bet is more than we have. Also invalid.
+	case betamt > Credits: // Bet is more than we have. Also invalid.
 		fmt.Println("Sorry, you can't wager more credits than you have!")
-	case betamt > 0 && betamt <= creds: // Bet is valid amount. Continue.
+	case betamt > 0 && betamt <= Credits: // Bet is valid amount. Continue.
 		fmt.Println("Ok, you're betting", betamt, "credits!")
 	}
 
@@ -208,7 +209,7 @@ func wager(creds int) int { // This routine grabs our bet! Or quits.
 }
 
 // Yay!!! We get to play BlackJack! At last!
-func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) (int, int, [52][2]int) {
+func playblackjack(curbet int, curcard int, curdeck [52][2]int) (int, [52][2]int) {
 
 	var c int                // Array Counter
 	var cardsout bool = true // Are there cards that still need to be played?
@@ -276,7 +277,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 			// No game to play.
 			fmt.Println("BLACKJACK! W00T!")
 			cardsout = false
-			curcredits = curcredits + (curbet * 2)
+			Credits = Credits + (curbet * 2)
 			kutil.Pause(2)
 		case dealerturn == false: // It's the player's turn.
 			playercards = playerselect(playercards)
@@ -324,7 +325,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 			// and set the flag to exit the game loop.
 			if playerbust {
 				fmt.Println("PLAYER HAS BUSTED!")
-				curcredits = curcredits - curbet
+				Credits = Credits - curbet
 				cardsout = false
 				kutil.Pause(2)
 			}
@@ -333,7 +334,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 			// and set the flag to exit the game loop.
 			if dealerbust {
 				fmt.Println("DEALER HAS BUSTED!")
-				curcredits = curcredits + curbet
+				Credits = Credits + curbet
 				cardsout = false
 				kutil.Pause(2)
 			}
@@ -353,12 +354,12 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 			case playertotal > dealertotal:
 				// Player has more points than the dealer. They win!
 				fmt.Println("Congratulations, you won!")
-				curcredits = curcredits + curbet
+				Credits = Credits + curbet
 				kutil.Pause(2)
 			case dealertotal > playertotal:
 				// Dealer has more points than the player. Dealer wins!
 				fmt.Println("Sorry, you lost!")
-				curcredits = curcredits - curbet
+				Credits = Credits - curbet
 				kutil.Pause(2)
 			case dealertotal == playertotal:
 				// Dealer and player have the same. No win, no loss.
@@ -371,7 +372,7 @@ func playblackjack(curcredits int, curbet int, curcard int, curdeck [52][2]int) 
 
 	}
 
-	return curcredits, curcard, curdeck
+	return curcard, curdeck
 
 }
 
