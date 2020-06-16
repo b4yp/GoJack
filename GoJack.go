@@ -30,6 +30,12 @@ var OnCard int = 51
 // Deck -- Our shuffled deck of cards.
 var Deck [52][2]int
 
+// DealerTotal -- Total number of points that the dealer has.
+var DealerTotal int
+
+// PlayerTotal -- Total number of points that the player has.
+var PlayerTotal int
+
 func main() {
 
 	// Run Game - Making this modular in case I decide to break this out into
@@ -221,9 +227,6 @@ func playblackjack(curbet int) {
 	// Initialized to "2" each because initial deal is only 2 cards each,
 	var dealercards int = 2 // Number of cards that the dealer has.
 	var playercards int = 2 // Number of cards that the player has.
-	// Total amount of the player's and dealer's hands.
-	var dealertotal int
-	var playertotal int
 	// Did the player or dealer bust?
 	var playerbust bool = false
 	var dealerbust bool = false
@@ -253,19 +256,18 @@ func playblackjack(curbet int) {
 
 	// Start by doing a check of the initial totals to see if the player
 	// got a blackjack and populate the totals for the screen.
-	playertotal, playerbust = cardcount(playerhand, playercards)
-	dealertotal, dealerbust = cardcount(dealerhand, dealercards)
+	PlayerTotal, playerbust = cardcount(playerhand, playercards)
+	DealerTotal, dealerbust = cardcount(dealerhand, dealercards)
 
 	// If player gets a Blackjack, set a flag to let the cardsout loop know.
-	if playertotal == 21 {
+	if PlayerTotal == 21 {
 		playerbj = true
 	}
 
 	// Now that all of that setup is done, let's actually play the game!
 	for cardsout {
 		// Show the player and dealer's hand on the screen.
-		showhand(dealerhand, playerhand, dealertotal, playertotal,
-			dealercards, playercards, dealerturn)
+		showhand(dealerhand, playerhand, dealercards, playercards, dealerturn)
 		fmt.Println()
 
 		// Determine who's turn it is and call the appropriate routine to process same.
@@ -292,7 +294,7 @@ func playblackjack(curbet int) {
 				dealerturn = true
 			}
 		case dealerturn == true: // Now, it's the dealer's turn.
-			dealercards = dealerselect(dealercards, dealertotal)
+			dealercards = dealerselect(dealercards)
 			// Check the array. If the card in the highest place in the array
 			// is zero, that means that the dealer has drawn a card. Add the card
 			// to the dealer's hand.
@@ -308,15 +310,14 @@ func playblackjack(curbet int) {
 		}
 
 		// Total up the player and dealer hands. Determine if either have busted.
-		playertotal, playerbust = cardcount(playerhand, playercards)
-		dealertotal, dealerbust = cardcount(dealerhand, dealercards)
+		PlayerTotal, playerbust = cardcount(playerhand, playercards)
+		DealerTotal, dealerbust = cardcount(dealerhand, dealercards)
 
 		// If either the player or dealer bust, clear the screen, show the updated
 		// hands and totals, then process outcome.
 		if playerbust || dealerbust {
 			// Show the player and dealer's hand on the screen.
-			showhand(dealerhand, playerhand, dealertotal, playertotal,
-				dealercards, playercards, dealerturn)
+			showhand(dealerhand, playerhand, dealercards, playercards, dealerturn)
 			fmt.Println()
 
 			// If the player busts, let them know, subtract the credits that they bet
@@ -344,22 +345,21 @@ func playblackjack(curbet int) {
 		if dealerdone {
 
 			// Show the player and dealer's hand on the screen.
-			showhand(dealerhand, playerhand, dealertotal, playertotal,
-				dealercards, playercards, dealerturn)
+			showhand(dealerhand, playerhand, dealercards, playercards, dealerturn)
 			fmt.Println()
 
 			switch {
-			case playertotal > dealertotal:
+			case PlayerTotal > DealerTotal:
 				// Player has more points than the dealer. They win!
 				fmt.Println("Congratulations, you won!")
 				Credits = Credits + curbet
 				kutil.Pause(2)
-			case dealertotal > playertotal:
+			case DealerTotal > PlayerTotal:
 				// Dealer has more points than the player. Dealer wins!
 				fmt.Println("Sorry, you lost!")
 				Credits = Credits - curbet
 				kutil.Pause(2)
-			case dealertotal == playertotal:
+			case DealerTotal == PlayerTotal:
 				// Dealer and player have the same. No win, no loss.
 				fmt.Println("Push. No win, no loss.")
 				kutil.Pause(2)
@@ -374,7 +374,7 @@ func playblackjack(curbet int) {
 
 // This function exists to print out the hands of the dealer and the player.
 // Modified: Now also prints out the totals as well.
-func showhand(dlrhand [12][2]int, plrhand [12][2]int, dtotal int, ptotal int,
+func showhand(dlrhand [12][2]int, plrhand [12][2]int,
 	dlrcards int, plrcards int, dlrturn bool) {
 	var d int // Counter for Card Deal
 
@@ -414,7 +414,7 @@ func showhand(dlrhand [12][2]int, plrhand [12][2]int, dtotal int, ptotal int,
 		fmt.Println("Dealer Total: ??")
 	} else {
 		// If it it's the dealer's turn, we want to show the total for the dealer.
-		fmt.Println("Dealer Total:", dtotal)
+		fmt.Println("Dealer Total:", DealerTotal)
 	}
 	fmt.Println()
 	// Print Player Hand
@@ -433,7 +433,7 @@ func showhand(dlrhand [12][2]int, plrhand [12][2]int, dtotal int, ptotal int,
 	}
 	// Print out the player's total. We always do this.
 	fmt.Println()
-	fmt.Println("Player Total:", ptotal)
+	fmt.Println("Player Total:", PlayerTotal)
 }
 
 // This function totals the score for all of the cards and determines if someone busts.
@@ -503,15 +503,23 @@ func playerselect(incard int) int {
 
 // This function is the "AI" for the dealer. It's a pretty dumb AI right now.
 // Basically, hit on anything less than 16.
-func dealerselect(indcard int, indtotal int) int {
+func dealerselect(indcard int) int {
 	var newdcard int // Number of cards in the hand.
 
 	switch {
-	case indtotal < 16: // Less than 16? Hit. Add a new card.
+	case DealerTotal < 16: // Less than 16? Hit. Add a new card.
 		newdcard = indcard + 1
 		fmt.Println("Dealer takes a card.")
 		kutil.Pause(2)
-	case indtotal >= 16: // Greater or equal to 16? Stay. No new card.
+	case DealerTotal >= 16 && PlayerTotal > DealerTotal:
+		// If dealer total is >= 16, but player total is higher, then
+		// draw another card just to see if we can win.
+		newdcard = indcard + 1
+		fmt.Println("Dealer takes a card.")
+		kutil.Pause(2)
+	case DealerTotal >= 16 && PlayerTotal <= DealerTotal:
+		// If dealer total is <= 16, and player total is the same or lower,
+		// then stay. No point in risking.
 		newdcard = indcard
 		fmt.Println("Dealer stays.")
 		kutil.Pause(2)
