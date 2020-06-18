@@ -23,6 +23,9 @@ import (
 // Credits - Amount of Credits that a player has. Initialized to 100 credits at start.
 var Credits int = 100
 
+// Bet - Amount of Credits that the player has bet. Initialized to  credits.
+var Bet int = 0
+
 // OnCard - Which is the next card that we are drawing from the deck?
 // -- Initialized to 51 (arrays start at 0, 52 cards in standard deck)
 var OnCard int = 51
@@ -142,20 +145,19 @@ func shuffledeck() { // Shuffle a deck of cards.
 func playhand() bool {
 	var stillplaying bool // Is the player still playing?
 	var validchoice bool  // Is the choice returned valid?
-	var bet int           // This is the amount of the bet.
 
 	validchoice = false
 	for validchoice == false { // Loop until a valid choice is made.
-		titleprint()  // Clear the screen and print the title.
-		bet = wager() // Wager prompt. Returns "0" for bet if quitting.
+		titleprint() // Clear the screen and print the title.
+		wager()      // Wager prompt. Returns "0" for bet if quitting.
 
-		if bet >= 0 && bet <= Credits {
+		if Bet >= 0 && Bet <= Credits {
 			// OK, we're going to play BJ now!
 			// Unless bet = 0, then we're quitting.
 			validchoice = true
-			if bet > 0 {
-				fmt.Println("Amount wagered:", bet)
-				playblackjack(bet)
+			if Bet > 0 {
+				fmt.Println("Amount wagered:", Bet)
+				playblackjack()
 			}
 			kutil.Pause(2)
 		}
@@ -167,7 +169,7 @@ func playhand() bool {
 	}
 
 	switch { // OK, let's see what we do after the game is played.
-	case bet == 0: // We bet "0" on the wager screen.
+	case Bet == 0: // We bet "0" on the wager screen.
 		// Chuck us back to the calling routine and
 		// say we aren't playing any more. Since it hits
 		// this check first, it'll quit regadless of how
@@ -187,33 +189,31 @@ func playhand() bool {
 	// our leftover creds, and what's left of the deck of cards.
 }
 
-func wager() int { // This routine grabs our bet! Or quits.
-	var betamt int // Bet amount.
+func wager() { // This routine grabs our bet! Or quits.
 
 	fmt.Println("How much would you like to wager?")
 	fmt.Println("Credits:", Credits)
 	fmt.Printf("Amount (0 to exit) > ")
-	fmt.Scan(&betamt) // Get our bet amount from the terminal.
+	fmt.Scan(&Bet) // Get our bet amount from the terminal.
 
 	switch { // OK.. let's see what we bet.
-	case betamt == 0: // Bet is 0. Quit the game.
+	case Bet == 0: // Bet is 0. Quit the game.
 		fmt.Println()
 		fmt.Println("Thanks for playing!")
-	case betamt < 0: // Bet is negative. Invalid.
+	case Bet < 0: // Bet is negative. Invalid.
 		fmt.Println("Sorry, you can't wager negative amounts of credits.")
-	case betamt > Credits: // Bet is more than we have. Also invalid.
+	case Bet > Credits: // Bet is more than we have. Also invalid.
 		fmt.Println("Sorry, you can't wager more credits than you have!")
-	case betamt > 0 && betamt <= Credits: // Bet is valid amount. Continue.
-		fmt.Println("Ok, you're betting", betamt, "credits!")
+	case Bet > 0 && Bet <= Credits: // Bet is valid amount. Continue.
+		fmt.Println("Ok, you're betting", Bet, "credits!")
 	}
 
 	kutil.Pause(2) // Pause for a couple of seconds to allow user to read the outcome.
 
-	return betamt // Return the amount that was bet.
 }
 
 // Yay!!! We get to play BlackJack! At last!
-func playblackjack(curbet int) {
+func playblackjack() {
 
 	var c int                // Array Counter
 	var cardsout bool = true // Are there cards that still need to be played?
@@ -227,6 +227,8 @@ func playblackjack(curbet int) {
 	// Initialized to "2" each because initial deal is only 2 cards each,
 	var dealercards int = 2 // Number of cards that the dealer has.
 	var playercards int = 2 // Number of cards that the player has.
+	// Did the player double down on their turn?
+	var doubledown bool = false
 	// Did the player or dealer bust?
 	var playerbust bool = false
 	var dealerbust bool = false
@@ -266,6 +268,7 @@ func playblackjack(curbet int) {
 
 	// Now that all of that setup is done, let's actually play the game!
 	for cardsout {
+
 		// Show the player and dealer's hand on the screen.
 		showhand(dealerhand, playerhand, dealercards, playercards, dealerturn)
 		fmt.Println()
@@ -277,10 +280,10 @@ func playblackjack(curbet int) {
 			// No game to play.
 			fmt.Println("BLACKJACK! W00T!")
 			cardsout = false
-			Credits = Credits + (curbet * 2)
+			Credits = Credits + (Bet * 2)
 			kutil.Pause(2)
 		case dealerturn == false: // It's the player's turn.
-			playercards = playerselect(playercards)
+			playercards, doubledown = playerselect(playercards)
 			// Check the array. If the card in the highest place in the array
 			// is zero, that means that the player has drawn a card. Add the card
 			// to the player's hand.
@@ -288,6 +291,9 @@ func playblackjack(curbet int) {
 				playerhand[playercards-1][0] = Deck[OnCard][0]
 				playerhand[playercards-1][1] = Deck[OnCard][1]
 				OnCard = OnCard - 1
+				if doubledown { // Did the player double down? If so, end their turn.
+					dealerturn = true
+				}
 			} else {
 				// If the array returns non-zero, that means that the player did not
 				// draw a card and their turn is over.
@@ -324,7 +330,7 @@ func playblackjack(curbet int) {
 			// and set the flag to exit the game loop.
 			if playerbust {
 				fmt.Println("PLAYER HAS BUSTED!")
-				Credits = Credits - curbet
+				Credits = Credits - Bet
 				cardsout = false
 				kutil.Pause(2)
 			}
@@ -333,7 +339,7 @@ func playblackjack(curbet int) {
 			// and set the flag to exit the game loop.
 			if dealerbust {
 				fmt.Println("DEALER HAS BUSTED!")
-				Credits = Credits + curbet
+				Credits = Credits + Bet
 				cardsout = false
 				kutil.Pause(2)
 			}
@@ -352,12 +358,12 @@ func playblackjack(curbet int) {
 			case PlayerTotal > DealerTotal:
 				// Player has more points than the dealer. They win!
 				fmt.Println("Congratulations, you won!")
-				Credits = Credits + curbet
+				Credits = Credits + Bet
 				kutil.Pause(2)
 			case DealerTotal > PlayerTotal:
 				// Dealer has more points than the player. Dealer wins!
 				fmt.Println("Sorry, you lost!")
-				Credits = Credits - curbet
+				Credits = Credits - Bet
 				kutil.Pause(2)
 			case DealerTotal == PlayerTotal:
 				// Dealer and player have the same. No win, no loss.
@@ -472,13 +478,15 @@ func cardcount(counthand [12][2]int, countcards int) (int, bool) {
 }
 
 // This function is to allow the player to select their
-func playerselect(incard int) int {
-	var newcard int   // Number of cards in the hand.
-	var selection int // Menu selection.
+func playerselect(incard int) (int, bool) {
+	var newcard int         // Number of cards in the hand.
+	var selection int       // Menu selection.
+	var double bool = false // Did the player double down?
 
 	// Print out the menu and get the selection from it.
 	fmt.Println("1. Hit")
 	fmt.Println("2. Stay")
+	fmt.Println("3. Double Down")
 	fmt.Print(">> ")
 	fmt.Scan(&selection)
 
@@ -492,13 +500,25 @@ func playerselect(incard int) int {
 		newcard = incard
 		fmt.Println("No more cards for you!")
 		kutil.Pause(2)
+	case selection == 3: // Double down. Take one card, double bet.
+		if (Bet * 2) > Credits {
+			newcard = incard + 1
+			fmt.Println("Sorry, not enough credits to double down.")
+			fmt.Println("Hitting instead.")
+		} else {
+			newcard = incard + 1
+			Bet = Bet * 2
+			double = true
+			fmt.Print("Doubling down. Drawing card, bet now ", Bet, "!")
+		}
+		kutil.Pause(2)
 	default:
 		newcard = incard // Invalid. No added card.
 		fmt.Println("Invalid selection, assuming Stay.")
 		kutil.Pause(5)
 	}
 
-	return newcard
+	return newcard, double
 }
 
 // This function is the "AI" for the dealer. It's a pretty dumb AI right now.
