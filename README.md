@@ -1,6 +1,9 @@
 # GoJack
 Simple terminal version of Blackjack written in Go. Mainly an exercise to practice Go arrays.
 
+## NOTICE!!! 
+Getting a new server in the next week. This project /may/ be moving to a private (yet still accessible to the public) GitLab repository if I can get it set up properly. Stay tuned!
+
 ## Release Notes:
 
 ### v1.1 - 2020/06/20
