@@ -2,6 +2,10 @@
 Simple terminal version of Blackjack written in Go. Mainly an exercise to practice Go arrays.
 
 ## Release Notes:
+
+### v1.1 - 2020/06/20
+I was really in the mood to get some changes done to make this game more "complete" so dug into it this week. Most of the changes were "under the hood" changes, but I did add a couple new features. Now, players can double down if they want as well as make insurance bets if they'd like! 
+
 ### v1.0 - 2020/06/15
 So this took me on-and-off about 2 weeks to complete and test. I'm pretty happy with it! Likely going to add more features and tweak stuff, but that'll be something for the future. 
 
