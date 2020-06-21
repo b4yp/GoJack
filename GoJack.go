@@ -600,6 +600,7 @@ func playerselect(incard int) (int, bool) {
 			newcard = incard + 1
 			fmt.Println("Sorry, not enough credits to double down.")
 			fmt.Println("Hitting instead.")
+			kutil.Pause(2)
 		} else { // Enough credits.. OK, let's do this!
 			newcard = incard + 1
 			Bet = Bet * 2
