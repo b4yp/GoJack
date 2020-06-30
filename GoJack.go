@@ -10,6 +10,7 @@
 //
 // v1.0 - 2020/06/15 - Initial release!
 // v1.1 - 2020/06/20 - Bug fixes, enhancements, added insurance and double-down.
+// v1.WIP -- Work in Progress. Watch for falling code.
 
 package main
 
@@ -74,7 +75,7 @@ func titleprint() { // Print the title of the game.
 	kutil.ClearScreen()
 
 	// Print out the game title. We'll probably use this a lot.
-	fmt.Println("GoJack v1.1 -- Blackjack for the Terminal")
+	fmt.Println("GoJack v1.WIP -- Blackjack for the Terminal")
 	fmt.Println()
 }
 
