@@ -569,20 +569,41 @@ func insurance() {
 
 // This function is to allow the player to select their
 func playerselect(incard int) (int, bool) {
-	var newcard int         // Number of cards in the hand.
-	var selection int       // Menu selection.
-	var double bool = false // Did the player double down?
+	var newcard int           // Number of cards in the hand.
+	var selection int = 0     // Menu selection.
+	var validsel bool = false // Valid selection?
+	var double bool = false   // Did the player double down?
 
-	// Print out the menu and get the selection from it.
-	fmt.Println("1. Hit")
-	fmt.Println("2. Stay")
-	if incard == 2 {
-		// Only offer option to Double Down on first round.
-		// Remove on subsequent rounds.
-		fmt.Println("3. Double Down")
+	// Print out the menu and get the selection from it. Cycle if invalid.
+	for !validsel {
+		fmt.Println("1. Hit")
+		fmt.Println("2. Stay")
+		if incard == 2 {
+			// Only offer option to Double Down on first round.
+			// Remove on subsequent rounds.
+			fmt.Println("3. Double Down")
+		}
+
+		fmt.Print(">> ")
+		fmt.Scan(&selection)
+
+		if incard > 2 && selection == 3 {
+			// If this is any other round than the first round, selecting
+			// "3" is invalid. Set selection to "0" to be picked up later.
+			selection = 0
+		}
+
+		if selection < 1 || selection > 3 {
+			// If selection is NOT 1, 2, or 3 (in certain cases),
+			// then it's invalid, report and make the user select again.
+			fmt.Println("Invalid selection, please try again!")
+			kutil.Pause(2)
+			fmt.Println()
+		} else { // Otherwise, our selection is valid.
+			validsel = true
+		}
+
 	}
-	fmt.Print(">> ")
-	fmt.Scan(&selection)
 
 	// Process our selection.
 	switch {
@@ -610,12 +631,9 @@ func playerselect(incard int) (int, bool) {
 		}
 		kutil.Pause(2)
 	default:
-		// If the user didn't make a valid selection.. assume "stay".
-		// No real reason for this beyond being lazy. Future me may allow
-		// them to re-enter on invalid selection.
-		newcard = incard // Invalid. No added card.
-		fmt.Println("Invalid selection, assuming Stay.")
-		kutil.Pause(5)
+		// We should never ever get to this code.
+		// If we do, something has gone horribly wrong earlier.
+		fmt.Println("Something has gone horribly wrong.")
 	}
 
 	return newcard, double
