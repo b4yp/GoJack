@@ -19,6 +19,7 @@ import (
 	"kutil"
 	"math"
 	"randomness"
+	"strings"
 )
 
 // GLOBAL VARIABLES
@@ -42,6 +43,9 @@ var DealerTotal int
 // PlayerTotal -- Total number of points that the player has.
 var PlayerTotal int
 
+// Soft17 -- Does the dealer hit on a Soft 17?
+var Soft17 bool = false
+
 func main() {
 
 	// Run Game - Making this modular in case I decide to break this out into
@@ -54,13 +58,41 @@ func gobj() { // OK! Let's start up the BlackJack Routine!
 
 	// Start Game Loop
 
-	var playing bool = true // Create boolean to let us know if still playing.
+	var playing bool = true   // Create boolean to let us know if still playing.
+	var firstloop bool = true // Is this the first loop? If so, ask for Soft17.
+	var softyn string = "N"   // Input for Soft17 Check
 
 	for playing { // Play hands until either out of credits or quit.
 
 		// Single deck Blackjack. Shuffle before each hand.
 		shuffledeck()
 		OnCard = 51
+
+		// Check to see if the player wants the dealer to hit on a Soft 17.
+		if firstloop {
+
+			// Print the title.
+			titleprint()
+
+			// Ask. Defaults to "No".
+			fmt.Println("Dealer Hit on Soft 17?")
+			fmt.Print("(y/N) >> ")
+			fmt.Scan(&softyn)
+
+			// Set case of input string to upper case.
+			softyn = strings.ToUpper(softyn)
+
+			// If player enters "Y", then Soft 17 is a go, otherwise, defaulted
+			// to false.
+			if softyn == "Y" {
+				Soft17 = true
+			}
+
+			// Set the "firstloop" variable to "false" so we aren't asking this
+			// question twice.
+			firstloop = false
+
+		}
 
 		// Return flag to let loop know that we're still playing.
 		playing = playhand()
@@ -243,6 +275,10 @@ func playblackjack() {
 	var dealerturn bool = false
 	// Define if the dealer is done with their turn.
 	var dealerdone bool = false
+	// Is this a soft hand for the player? (Contains > 0 Aces)
+	var softhandp bool = false
+	// Is this a soft hand for the dealer? (Contains > 0 Aces)
+	var softhandd bool = false
 	// Did the player get blackjack on the initial deal?
 	var playerbj bool = false
 	// Did the dealer get blackjack on the initial deal?
@@ -269,8 +305,8 @@ func playblackjack() {
 
 	// Start by doing a check of the initial totals to see if the player
 	// got a blackjack and populate the totals for the screen.
-	PlayerTotal, playerbust = cardcount(playerhand, playercards)
-	DealerTotal, dealerbust = cardcount(dealerhand, dealercards)
+	PlayerTotal, playerbust, softhandp = cardcount(playerhand, playercards)
+	DealerTotal, dealerbust, softhandd = cardcount(dealerhand, dealercards)
 
 	// If player gets a Blackjack, set a flag to let the cardsout loop know.
 	if PlayerTotal == 21 {
@@ -316,7 +352,7 @@ func playblackjack() {
 			insflag = true
 			insurance()
 		case !dealerturn: // It's the player's turn.
-			playercards, doubledown = playerselect(playercards)
+			playercards, doubledown = playerselect(playercards, softhandp)
 			// Check the array. If the card in the highest place in the array
 			// is zero, that means that the player has drawn a card. Add the card
 			// to the player's hand.
@@ -333,7 +369,7 @@ func playblackjack() {
 				dealerturn = true
 			}
 		case dealerturn: // Now, it's the dealer's turn.
-			dealercards = dealerselect(dealercards)
+			dealercards = dealerselect(dealercards, softhandd)
 			// Check the array. If the card in the highest place in the array
 			// is zero, that means that the dealer has drawn a card. Add the card
 			// to the dealer's hand.
@@ -349,8 +385,8 @@ func playblackjack() {
 		}
 
 		// Total up the player and dealer hands. Determine if either have busted.
-		PlayerTotal, playerbust = cardcount(playerhand, playercards)
-		DealerTotal, dealerbust = cardcount(dealerhand, dealercards)
+		PlayerTotal, playerbust, softhandp = cardcount(playerhand, playercards)
+		DealerTotal, dealerbust, softhandd = cardcount(dealerhand, dealercards)
 
 		// If either the player or dealer bust, clear the screen, show the updated
 		// hands and totals, then process outcome.
@@ -476,11 +512,12 @@ func showhand(dlrhand [12][2]int, plrhand [12][2]int,
 }
 
 // This function totals the score for all of the cards and determines if someone busts.
-func cardcount(counthand [12][2]int, countcards int) (int, bool) {
+func cardcount(counthand [12][2]int, countcards int) (int, bool, bool) {
 	var d int = 0          // Array counter/variable.
 	var acecount int = 0   // Number of aces that we encounter that have been drawn.
 	var totalcount int = 0 // Total value of the cards in the hand.
 	var bust bool = false  // Did the we bust?
+	var soft bool = false  // Does this hand contain an ace?
 
 	for d < countcards {
 		switch {
@@ -496,9 +533,18 @@ func cardcount(counthand [12][2]int, countcards int) (int, bool) {
 		// If we reach a total that's greater than 21, check to see if we have any aces.
 		// If so, reduce the count by 10 so the ace counts as "1" instead of 11.
 		// Also, decrement the number of aces that we have to use for this.
-		if totalcount > 21 && acecount > 0 {
+
+		for acecount > 0 && totalcount > 21 {
+
 			totalcount = totalcount - 10
 			acecount = acecount - 1
+
+		}
+
+		// If there are more than one aces available, this is a soft hand, report
+		// as true if so.
+		if acecount > 0 {
+			soft = true
 		}
 
 		if totalcount > 21 { // Total > 21? Sorry. Ya busted.
@@ -507,26 +553,26 @@ func cardcount(counthand [12][2]int, countcards int) (int, bool) {
 
 		d = d + 1
 	}
-	return totalcount, bust
+	return totalcount, bust, soft
 }
 
 // This function is to ask the player if they want insurance and process if they do.
 func insurance() {
-	var selection int         // Menu Selection
-	var insbet float64        // Insurance Bet (Up to half of Bet)
-	var partcent float64      // Make sure we don't have any partial cents in bet.
-	var validsel bool = false // Did the user make a valid selection?
+	var selection string = "N" // Menu Selection
+	var insbet float64         // Insurance Bet (Up to half of Bet)
+	var partcent float64       // Make sure we don't have any partial cents in bet.
+	var validsel bool = false  // Did the user make a valid selection?
 
 	// Print out the menu and get the selection from it.
 	fmt.Println("Insurance?")
-	fmt.Println("1. Yes")
-	fmt.Println("2. No")
-	fmt.Print(">> ")
+	fmt.Print("(y/N) >> ")
 	fmt.Scan(&selection)
+
+	selection = strings.ToUpper(selection)
 
 	for !validsel { // Loop until we have a valid selection.
 		switch {
-		case selection == 1: // Yes, we want insurance!
+		case selection == "Y": // Yes, we want insurance!
 			// Print initial bet and ask for insurance bet.
 			fmt.Println()
 			fmt.Println("Initial Bet:", Bet)
@@ -558,7 +604,7 @@ func insurance() {
 				kutil.Pause(2)
 				validsel = true
 			}
-		case selection == 2: // No insurance. Set valid selection flag, notify, and exit.
+		case selection == "N": // No insurance. Set valid selection flag, notify, and exit.
 			validsel = true
 			fmt.Println()
 			fmt.Println("OK, no insurance!")
@@ -568,8 +614,11 @@ func insurance() {
 
 }
 
-// This function is to allow the player to select their
-func playerselect(incard int) (int, bool) {
+// This function is to allow the player to select their card(s).
+// FYI: Whether the hand is soft or not is passed. Not used. It is
+//      only included to stop the compiler from complaining.
+//      Likely not usable for this function.
+func playerselect(incard int, soft bool) (int, bool) {
 	var newcard int           // Number of cards in the hand.
 	var selection int = 0     // Menu selection.
 	var validsel bool = false // Valid selection?
@@ -643,10 +692,15 @@ func playerselect(incard int) (int, bool) {
 // This function is the "AI" for the dealer. It's a pretty dumb AI right now.
 // Changed to casino rules. Dealer hits if less than 17. May update to hit on
 // soft 17 as well in the future.. or add option.
-func dealerselect(indcard int) int {
+func dealerselect(indcard int, soft bool) int {
 	var newdcard int // Number of cards in the hand.
 
 	switch {
+	case DealerTotal == 17 && soft && Soft17:
+		// Dealer hits on Soft 17
+		newdcard = indcard + 1
+		fmt.Println("Dealer takes a card.")
+		kutil.Pause(2)
 	case DealerTotal < 17:
 		// Less than 17? Hit. Unless tied or winning.
 		newdcard = indcard + 1
