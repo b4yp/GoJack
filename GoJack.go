@@ -533,12 +533,9 @@ func cardcount(counthand [12][2]int, countcards int) (int, bool, bool) {
 		// If we reach a total that's greater than 21, check to see if we have any aces.
 		// If so, reduce the count by 10 so the ace counts as "1" instead of 11.
 		// Also, decrement the number of aces that we have to use for this.
-
-		for acecount > 0 && totalcount > 21 {
-
+		if totalcount > 21 && acecount > 0 {
 			totalcount = totalcount - 10
 			acecount = acecount - 1
-
 		}
 
 		// If there are more than one aces available, this is a soft hand, report
