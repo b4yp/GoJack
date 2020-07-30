@@ -698,6 +698,13 @@ func dealerselect(indcard int, soft bool) int {
 		newdcard = indcard + 1
 		fmt.Println("Dealer takes a card.")
 		kutil.Pause(2)
+	case DealerTotal < 17 && DealerTotal > PlayerTotal:
+		// Dealer has less than 17, but greater than player.
+		// No point in (potentially) busting since dealer
+		// already won.
+		newdcard = indcard
+		fmt.Println("Dealer stays.")
+		kutil.Pause(2)
 	case DealerTotal < 17:
 		// Less than 17? Hit. Unless tied or winning.
 		newdcard = indcard + 1
